@@ -1,12 +1,7 @@
 module OFXRB
-
-  class Ofx
-    
-    # Creates an OfxObject for the version detected in the ofx_doc
-    def self.import(ofx_doc)
-      Parser102.parse(ofx_doc)
-    end
-    
+  # Creates an OfxObject for the version detected in the ofx_doc
+  def self.import(ofx_doc)
+    Parser102.parse(ofx_doc)
   end
 
   class OfxObject
