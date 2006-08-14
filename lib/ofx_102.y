@@ -15,7 +15,6 @@ end
 
 ---- header ----
 require 'strscan'
-#@yydebug = true
 
 ---- inner ----
 class Property
@@ -51,13 +50,6 @@ def element(val)
   e
 end
 
-MATCH_TOKENS = {
-  :START_TAG => /<\w+>/,
-  :END_TAG => /<\/\w+>/,
-  :STRING => /[^\r\n<>:]+/,
-  :COLON => /:/,
-}
-
 def self.parse(ofx_doc, root_object = CreditCardStatement.new)
   new.parse(ofx_doc, root_object)
 end
@@ -66,17 +58,27 @@ end
 def parse(ofx_doc, root_object)
   @root_object = root_object
 
+  @match_tokens = {
+    :START_TAG => /<\w+>/,
+    :END_TAG => /<\/\w+>/,
+    :STRING => /[^\r\n<>:]+/,
+    :COLON => /:/,
+  }
+
   @tokens, s = [], StringScanner.new(ofx_doc)
   until s.eos?
     s.scan(/\s*/)
-    MATCH_TOKENS.each do |key, value|
+    @match_tokens.each do |key, value|
       if s.scan(value)
         @tokens << [key, s.matched]
+        # Redefine string after headers so that : is allowed in values
+        @match_tokens[:STRING] = /[^\r\n<>]+/ if key == :START_TAG        
         break # to consume more whitespace, move forward
       end
     end
   end
 
+  #@yydebug = true
   do_parse
   @root_object
 end

@@ -5,7 +5,7 @@ task :default => ["gem"]
 
 desc "Execute racc to generate parsers"
 file "lib/ofx_102.rb" => ["lib/ofx_102.y"] do
-  Dir.chdir('lib') { sh "racc -o ofx_102.rb ofx_102.y" }
+  Dir.chdir('lib') { sh "racc -g -o ofx_102.rb ofx_102.y" }
 end
 
 desc "Create a gem"
@@ -16,6 +16,7 @@ task :gem => ["lib/ofx_102.rb", :test_units] do
     s.name = 'ofxrb'
     s.version = "0.0.1"
     s.platform = Gem::Platform::RUBY
+    s.add_dependency('activesupport', '>= 1.3.1')
     s.summary = "ofxrb is a pure-Ruby OFX (Open Financial Exchange) library"
     s.required_ruby_version = '>= 1.8.1' # for Racc Runtime Module
     s.files = Dir.glob("lib/**/*").delete_if {|item| item.include?(".svn") or item.include?("ofx_102.y")}

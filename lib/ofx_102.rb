@@ -8,14 +8,13 @@ require 'racc/parser'
 
 
 require 'strscan'
-#@yydebug = true
 
 
 module OFXRB
 
   class Parser102 < Racc::Parser
 
-module_eval <<'..end ofx_102.y modeval..id3b30bad59f', 'ofx_102.y', 21
+module_eval <<'..end ofx_102.y modeval..id94261ec6f5', 'ofx_102.y', 20
 class Property
   attr_accessor :key, :value
   def initialize(name, value)
@@ -49,13 +48,6 @@ def element(val)
   e
 end
 
-MATCH_TOKENS = {
-  :START_TAG => /<\w+>/,
-  :END_TAG => /<\/\w+>/,
-  :STRING => /[^\r\n<>:]+/,
-  :COLON => /:/,
-}
-
 def self.parse(ofx_doc, root_object = CreditCardStatement.new)
   new.parse(ofx_doc, root_object)
 end
@@ -64,17 +56,27 @@ end
 def parse(ofx_doc, root_object)
   @root_object = root_object
 
+  @match_tokens = {
+    :START_TAG => /<\w+>/,
+    :END_TAG => /<\/\w+>/,
+    :STRING => /[^\r\n<>:]+/,
+    :COLON => /:/,
+  }
+
   @tokens, s = [], StringScanner.new(ofx_doc)
   until s.eos?
     s.scan(/\s*/)
-    MATCH_TOKENS.each do |key, value|
+    @match_tokens.each do |key, value|
       if s.scan(value)
         @tokens << [key, s.matched]
+        # Redefine string after headers so that : is allowed in values
+        @match_tokens[:STRING] = /[^\r\n<>]+/ if key == :START_TAG        
         break # to consume more whitespace, move forward
       end
     end
   end
 
+  #@yydebug = true
   do_parse
   @root_object
 end
@@ -83,7 +85,7 @@ private
 def next_token
   @tokens.shift
 end
-..end ofx_102.y modeval..id3b30bad59f
+..end ofx_102.y modeval..id94261ec6f5
 
 ##### racc 1.4.5 generates ###
 
@@ -176,7 +178,7 @@ Racc_token_to_s_table = [
 'closed_element',
 'one_line_element']
 
-Racc_debug_parser = false
+Racc_debug_parser = true
 
 ##### racc system variables end #####
 

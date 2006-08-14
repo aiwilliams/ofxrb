@@ -1,7 +1,13 @@
 module OFXRB
   # Creates an OfxObject for the version detected in the ofx_doc
   def self.import(ofx_doc)
-    Parser102.parse(ofx_doc)
+    raise "Not a valid OFX document. Must contain OFXHEADER value." unless ofx_doc =~ /.*?OFXHEADER/
+    
+    version = $1 if ofx_doc =~ /VERSION:(102)/i
+    version ||= $1 if ofx_doc =~ /VERSION="(200)"/
+    raise "Unsupported OFX document version" unless version
+    
+    "OFXRB::Parser#{version}".constantize.parse(ofx_doc)
   end
 
   class OfxObject

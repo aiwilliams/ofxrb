@@ -7,5 +7,8 @@ class Parser102Test < Test::Unit::TestCase
     ofx = OFXRB::Parser102.parse(fixture_credit_card_statement_102)
     assert_equal '102', ofx.version
     assert_equal '42.74', ofx.transactions.first.amount
+
+    ofx = OFXRB::Parser102.parse(fixture_checking_and_savings_102)
+    assert_equal '102', ofx.version
   end
 end
