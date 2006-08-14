@@ -10,6 +10,25 @@ module OFXRB
     "OFXRB::Parser#{version}".constantize.parse(ofx_doc)
   end
 
+  # The basic OFX document event handler, used to create an OFX model from
+  # an OFX document
+  class OfxHandler
+    # All handlers answer the OFX object model that they are building
+    attr_reader :ofx_object
+
+    def initialize
+      @ofx_object = BankStatement.new
+    end
+
+    def header_event(name, value)
+      @ofx_object.properties[name] = value
+    end
+
+    def property_event(name, value)
+    end
+
+  end
+
   class OfxObject
     
     # Maps humane attr_readers to the element names of the OFX specification.
@@ -26,11 +45,31 @@ module OFXRB
 
   end
 
+  class BankStatement < OfxObject
+    attr_reader :properties, :credit_cards
 
-  class CreditCardStatement < OfxObject
-    attr_reader :properties, :transactions
-    
     ofx_attrs :version => 'VERSION'
+
+    def initialize
+      @properties = {}
+      @credit_cards = []
+    end
+
+    def ccstmtrs(properties)
+      @credit_cards << cc = CreditCard.new(properties)
+      cc.transactions = @transactions
+      
+    end
+
+    def method_missing(name, *args)
+      # p "Need to handle #{name} in #{self.class.name}"
+    end
+
+  end
+
+
+  class CreditCard < OfxObject
+    attr_reader :properties, :transactions
 
     def initialize
       @properties = {}
@@ -42,7 +81,9 @@ module OFXRB
     end
   
     def method_missing(name, *args)
+      p "Need to handle #{name} in #{self.class.name}"
     end
+
   end
 
 
@@ -52,6 +93,7 @@ module OFXRB
     def initialize(properties)
       @properties = properties
     end
+
   end
 
 end

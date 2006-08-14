@@ -14,47 +14,30 @@ module OFXRB
 
   class Parser102 < Racc::Parser
 
-module_eval <<'..end ofx_102.y modeval..id94261ec6f5', 'ofx_102.y', 20
-class Property
-  attr_accessor :key, :value
-  def initialize(name, value)
-    @key = name
-    @value = value
-  end
-end
-
-class Element
-  attr_reader :name, :properties
-  def initialize(start_name, elements, end_name)
-    raise "Element #{start_name} is being closed as #{end_name}" if start_name != end_name
-    @name, @properties = start_name, {}
-    elements.each { |e| @properties.store(e.key, e.value) if e.is_a?(Property) }
-  end
-end
-
+module_eval <<'..end ofx_102.y modeval..iddc2bd249fa', 'ofx_102.y', 35
 def name_from_ofx(tag)
   $1 if tag =~ /<\/?(\w+)>/
 end
 
-def property(val)
-  Property.new(name_from_ofx(val[0]), val[1])
+def end_tag_event(tag)
+  tag_event(tag, 'end')
 end
 
-# When an OFXRB::Element has been created, the current handler will receive a
-# a method send where the name is the downcased name of the OFXRB::Element.
-def element(val)
-  e = Element.new(name_from_ofx(val[0]), val[1], name_from_ofx(val[2]));
-  @root_object.send(e.name.downcase.to_sym, e.properties)
-  e
+def start_tag_event(tag)
+  tag_event(tag, 'start')
 end
 
-def self.parse(ofx_doc, root_object = CreditCardStatement.new)
+def tag_event(tag, type)
+  method = "#{name_from_ofx(tag).downcase}_#{type}_event".to_sym
+  @event_handler.send(method) if @event_handler.respond_to?(method)
+end
+
+def self.parse(ofx_doc, root_object = OfxHandler.new)
   new.parse(ofx_doc, root_object)
 end
 
-# Implements the Racc#parse method using a StringScanner to lex
-def parse(ofx_doc, root_object)
-  @root_object = root_object
+def parse(ofx_doc, event_handler)
+  @event_handler = event_handler
 
   @match_tokens = {
     :START_TAG => /<\w+>/,
@@ -78,14 +61,14 @@ def parse(ofx_doc, root_object)
 
   #@yydebug = true
   do_parse
-  @root_object
+  @event_handler.ofx_object
 end
 
 private
 def next_token
   @tokens.shift
 end
-..end ofx_102.y modeval..id94261ec6f5
+..end ofx_102.y modeval..iddc2bd249fa
 
 ##### racc 1.4.5 generates ###
 
@@ -95,44 +78,57 @@ racc_reduce_table = [
  2, 8, :_reduce_none,
  1, 8, :_reduce_none,
  3, 10, :_reduce_4,
- 2, 9, :_reduce_5,
- 1, 9, :_reduce_6,
- 1, 11, :_reduce_none,
- 1, 11, :_reduce_none,
- 2, 13, :_reduce_9,
- 3, 12, :_reduce_10 ]
+ 2, 9, :_reduce_none,
+ 1, 9, :_reduce_none,
+ 1, 9, :_reduce_none,
+ 3, 11, :_reduce_none,
+ 2, 11, :_reduce_none,
+ 2, 12, :_reduce_none,
+ 2, 12, :_reduce_none,
+ 1, 12, :_reduce_none,
+ 2, 15, :_reduce_13,
+ 2, 16, :_reduce_none,
+ 1, 16, :_reduce_none,
+ 1, 13, :_reduce_16,
+ 1, 14, :_reduce_17 ]
 
-racc_reduce_n = 11
+racc_reduce_n = 18
 
-racc_shift_n = 19
+racc_shift_n = 24
 
 racc_action_table = [
-     1,    15,    10,    10,    10,    18,    13,     6,    14,     5,
-    10,     1 ]
+    17,    15,    10,    19,     1,     1,    10,    14,     6,    10,
+     5,    10,    19 ]
 
 racc_action_check = [
-     3,    10,     3,    10,    16,    16,     5,     2,     6,     1,
-    11,     0 ]
+     9,     6,     9,     9,     3,     0,     3,     5,     2,     7,
+     1,    11,    20 ]
 
 racc_action_pointer = [
-     9,     6,     7,    -2,   nil,     4,     8,   nil,   nil,   nil,
-    -1,     6,   nil,   nil,   nil,   nil,     0,   nil,   nil ]
+     3,     7,     8,     2,   nil,     5,     1,     5,   nil,    -2,
+   nil,     7,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,
+     7,   nil,   nil,   nil ]
 
 racc_action_default = [
-   -11,   -11,   -11,   -11,    -3,   -11,   -11,    -6,    -7,    -8,
-   -11,    -1,    -2,    -4,    19,    -9,   -11,    -5,   -10 ]
+   -18,   -18,   -18,   -18,    -3,   -18,   -18,    -7,    -6,   -18,
+   -16,   -12,    -1,    -2,    -4,    24,    -5,   -13,    -9,   -17,
+   -18,    -6,   -11,    -8 ]
 
 racc_goto_table = [
-    11,    17,     4,     3,     2,    12,    17,    16 ]
+    18,    12,     3,     4,    21,    16,    13,    20,     2,    22,
+   nil,    23 ]
 
 racc_goto_check = [
-     3,     5,     4,     2,     1,     4,     5,     3 ]
+     8,     3,     2,     4,     6,     3,     4,     3,     1,     3,
+   nil,     8 ]
 
 racc_goto_pointer = [
-   nil,     4,     3,    -3,     2,   -10,   nil,   nil ]
+   nil,     8,     2,    -2,     3,   nil,    -7,   nil,    -9,   nil,
+   nil ]
 
 racc_goto_default = [
-   nil,   nil,   nil,   nil,   nil,     7,     8,     9 ]
+   nil,   nil,   nil,   nil,   nil,     7,     8,     9,   nil,    11,
+   nil ]
 
 racc_token_table = {
  false => 0,
@@ -172,13 +168,16 @@ Racc_token_to_s_table = [
 '$start',
 'root',
 'headers',
-'elements',
+'objects',
 'key_value_pair',
-'element',
-'closed_element',
-'one_line_element']
+'object',
+'properties',
+'start_tag',
+'end_tag',
+'property',
+'end_tags']
 
-Racc_debug_parser = true
+Racc_debug_parser = false
 
 ##### racc system variables end #####
 
@@ -190,41 +189,50 @@ Racc_debug_parser = true
 
  # reduce 3 omitted
 
-module_eval <<'.,.,', 'ofx_102.y', 5
-  def _reduce_4( val, _values, result )
-@root_object.properties.store(val[0], val[2])
-   result
-  end
-.,.,
-
 module_eval <<'.,.,', 'ofx_102.y', 7
-  def _reduce_5( val, _values, result )
-result << val[1]
+  def _reduce_4( val, _values, result )
+@event_handler.header_event(val[0], val[2])
    result
   end
 .,.,
 
-module_eval <<'.,.,', 'ofx_102.y', 8
-  def _reduce_6( val, _values, result )
-result = [val[0]]
-   result
-  end
-.,.,
+ # reduce 5 omitted
+
+ # reduce 6 omitted
 
  # reduce 7 omitted
 
  # reduce 8 omitted
 
-module_eval <<'.,.,', 'ofx_102.y', 11
-  def _reduce_9( val, _values, result )
-result = property(val)
+ # reduce 9 omitted
+
+ # reduce 10 omitted
+
+ # reduce 11 omitted
+
+ # reduce 12 omitted
+
+module_eval <<'.,.,', 'ofx_102.y', 20
+  def _reduce_13( val, _values, result )
+@event_handler.property_event(name_from_ofx(val[0]), val[1])
    result
   end
 .,.,
 
-module_eval <<'.,.,', 'ofx_102.y', 12
-  def _reduce_10( val, _values, result )
-result = element(val)
+ # reduce 14 omitted
+
+ # reduce 15 omitted
+
+module_eval <<'.,.,', 'ofx_102.y', 25
+  def _reduce_16( val, _values, result )
+start_tag_event(val[0])
+   result
+  end
+.,.,
+
+module_eval <<'.,.,', 'ofx_102.y', 27
+  def _reduce_17( val, _values, result )
+end_tag_event(val[0])
    result
   end
 .,.,

@@ -1,7 +1,7 @@
 == OFXRB, the Pure Ruby OFX (Open Financial Exchange) Library
 
 OFXRB is *the* solution to parsing and generating OFX documents in Ruby.
-If you didn't know what OFX was, you probably wouldn't be looking at this,
+If you don't know what OFX is, you probably wouldn't be looking at this,
 but, to be complete: The Open Financial Exchange specification defines an
 information exchange protocol for financial applications. That essentially
 means that we now have an agreed upon way to represent what is in our bank

@@ -1,62 +1,60 @@
 class OFXRB::Parser102
 rule
-	root: headers elements
+	root: headers objects
+
 	headers: headers key_value_pair
 	       | key_value_pair
-	key_value_pair: STRING COLON STRING {@root_object.properties.store(val[0], val[2])}
+
+	key_value_pair: STRING COLON STRING {@event_handler.header_event(val[0], val[2])}
 	
-	elements: elements element {result << val[1]}
-	        | element {result = [val[0]]}
+	objects: object objects
+	       | properties
+	       | object
+
+  object: start_tag objects end_tag
+        | start_tag end_tag
+  
+  properties: property properties
+            | property objects
+            | property
+  	          
+	property: start_tag STRING {@event_handler.property_event(name_from_ofx(val[0]), val[1])}
 	
-	element: closed_element | one_line_element
-	one_line_element: START_TAG STRING {result = property(val)}
-	closed_element: START_TAG elements END_TAG {result = element(val)}
+	end_tags: end_tag end_tags
+	          | end_tag
+
+	start_tag: START_TAG {start_tag_event(val[0])}
+
+  end_tag: END_TAG {end_tag_event(val[0])}
 end
 
 ---- header ----
 require 'strscan'
 
 ---- inner ----
-class Property
-  attr_accessor :key, :value
-  def initialize(name, value)
-    @key = name
-    @value = value
-  end
-end
-
-class Element
-  attr_reader :name, :properties
-  def initialize(start_name, elements, end_name)
-    raise "Element #{start_name} is being closed as #{end_name}" if start_name != end_name
-    @name, @properties = start_name, {}
-    elements.each { |e| @properties.store(e.key, e.value) if e.is_a?(Property) }
-  end
-end
-
 def name_from_ofx(tag)
   $1 if tag =~ /<\/?(\w+)>/
 end
 
-def property(val)
-  Property.new(name_from_ofx(val[0]), val[1])
+def end_tag_event(tag)
+  tag_event(tag, 'end')
 end
 
-# When an OFXRB::Element has been created, the current handler will receive a
-# a method send where the name is the downcased name of the OFXRB::Element.
-def element(val)
-  e = Element.new(name_from_ofx(val[0]), val[1], name_from_ofx(val[2]));
-  @root_object.send(e.name.downcase.to_sym, e.properties)
-  e
+def start_tag_event(tag)
+  tag_event(tag, 'start')
 end
 
-def self.parse(ofx_doc, root_object = CreditCardStatement.new)
+def tag_event(tag, type)
+  method = "#{name_from_ofx(tag).downcase}_#{type}_event".to_sym
+  @event_handler.send(method) if @event_handler.respond_to?(method)
+end
+
+def self.parse(ofx_doc, root_object = OfxHandler.new)
   new.parse(ofx_doc, root_object)
 end
 
-# Implements the Racc#parse method using a StringScanner to lex
-def parse(ofx_doc, root_object)
-  @root_object = root_object
+def parse(ofx_doc, event_handler)
+  @event_handler = event_handler
 
   @match_tokens = {
     :START_TAG => /<\w+>/,
@@ -80,7 +78,7 @@ def parse(ofx_doc, root_object)
 
   #@yydebug = true
   do_parse
-  @root_object
+  @event_handler.ofx_object
 end
 
 private
