@@ -1,0 +1,39 @@
+== OFXRB, the Pure Ruby OFX (Open Financial Exchange) Library
+
+OFXRB is *the* solution to parsing and generating OFX documents in Ruby.
+If you didn't know what OFX was, you probably wouldn't be looking at this,
+but, to be complete: The Open Financial Exchange specification defines an
+information exchange protocol for financial applications. That essentially
+means that we now have an agreed upon way to represent what is in our bank
+accounts, initiate electronic transactions, and receive responses to those
+requests. OFX has been developed by Microsoft, Intuit and CheckFree. You
+can learn more at http://www.ofx.net.
+
+== Getting Started
+
+The best way to get OFXRB is using RubyGems. Since OFXRB is an open-source
+project hosted on RubyForge (http://rubyforge.org), this means that all you
+have to do to get the most recent stable build is:
+
+  sudo gem install ofxrb
+
+To use it in your code, you need to follow the directions found over here
+http://docs.rubygems.org/read/chapter/3#page70.
+
+Once you have the library available to your Ruby program, you will need to
+parse an OFX document or generate one.
+
+== Parsing Documents
+
+  OFXRB.parse(ofx_doc)
+
+The 'ofx_doc' is anything that walks like a String. OFXRB will figure out
+what version of the spec the doc is - and will complain if it doesn't
+know - and return an object structure representing the document given.
+This is where things get more interesting, and are a bit undefined at this
+point in time. For now, it might be best to read the code to understand
+what is available to you.
+
+== Generating Documents
+
+????
