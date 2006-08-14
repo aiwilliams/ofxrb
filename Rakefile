@@ -5,7 +5,7 @@ task :default => ["gem"]
 
 desc "Execute racc to generate parsers"
 file "lib/ofx_102.rb" => ["lib/ofx_102.y"] do
-  Dir.chdir('lib') { sh "racc -g -o ofx_102.rb ofx_102.y" }
+  Dir.chdir('lib') { sh "racc -o ofx_102.rb ofx_102.y" }
 end
 
 desc "Create a gem"
