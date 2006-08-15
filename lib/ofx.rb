@@ -10,6 +10,7 @@ module OFXRB
     "OFXRB::Parser#{version}".constantize.parse(ofx_doc)
   end
 
+
   # The basic OFX document event handler, used to create an OFX model from
   # an OFX document
   class OfxHandler
@@ -17,81 +18,125 @@ module OFXRB
     attr_reader :ofx_object
 
     def initialize
-      @ofx_object = BankStatement.new
+      @stack = []
+      @current = @ofx_object = OfxInstance.new
     end
 
     def header_event(name, value)
-      @ofx_object.properties[name] = value
+      @current.header(name, value)
     end
 
     def property_event(name, value)
+      @current.property(name, value)
     end
 
-  end
-
-  class OfxObject
+    def start_tag_event(name)
+      new_state = @current.start(name)
+      if new_state != @current
+        @stack.push(@current)
+        @current = new_state
+      end
+    end
     
-    # Maps humane attr_readers to the element names of the OFX specification.
-    def self.ofx_attrs(mapping)
-      mapping.each do |humane, ofx_name|
-        module_eval "def #{humane.to_s}; self['#{ofx_name}']; end"
+    def end_tag_event(name)
+      while @current and @current.end?(name)
+        @current = @stack.pop
       end
     end
 
-    # Provides access to properties via their actual names in the OFX spec.
-    def [](key)
-      @properties[key]
-    end
-
   end
 
-  class BankStatement < OfxObject
-    attr_reader :properties, :credit_cards
 
-    ofx_attrs :version => 'VERSION'
+  class OfxObject
 
+    class <<self
+      attr_reader :ofx_header_humane, :ofx_paths
+    end
+    
     def initialize
-      @properties = {}
-      @credit_cards = []
+      @current_path = []
+      @children = {}
+      @attributes = {}
+      @headers = {}
     end
 
-    def ccstmtrs(properties)
-      @credit_cards << cc = CreditCard.new(properties)
-      cc.transactions = @transactions
+    def self.has_attrs(mapping)
+      @ofx_paths ||= {}
+
+      mapping.each do |name, ofx_path|
+        ofx_path = [ofx_path] if ofx_path.is_a? String
+        @ofx_paths[ofx_path] = name
+        module_eval <<-"end;"
+          def #{name.to_s}
+            @attributes[:#{name.to_s}]
+          end
+
+          def #{name.to_s}=(value)
+            @attributes[:#{name.to_s}] = value
+          end
+        end;
+      end
+    end
+    
+    def self.has_child(child_name, ofx_path = [child_name.to_s.upcase])
+      @ofx_paths ||= {}
       
-    end
-
-    def method_missing(name, *args)
-      # p "Need to handle #{name} in #{self.class.name}"
-    end
-
-  end
-
-
-  class CreditCard < OfxObject
-    attr_reader :properties, :transactions
-
-    def initialize
-      @properties = {}
-      @transactions = []
-    end
-  
-    def stmttrn(properties)
-      @transactions << Transaction.new(properties)
-    end
-  
-    def method_missing(name, *args)
-      p "Need to handle #{name} in #{self.class.name}"
-    end
-
-  end
-
-
-  class Transaction < OfxObject
-    ofx_attrs :amount => 'TRNAMT'
+      raise "Child #{child_name} already defined" if respond_to? child_name
+      @ofx_paths[ofx_path] = child_name
+      module_eval <<-"end;"
+        def #{child_name.to_s}
+          @children[:#{child_name.to_s}]
+        end
       
-    def initialize(properties)
-      @properties = properties
+        def #{child_name.to_s}=(value)
+          @children[:#{child_name.to_s}] = value
+        end
+      end;
+    end
+    
+    def self.has_children(children_name, ofx_path = [children_name.to_s.upcase])
+    end
+
+    def self.has_header(name, ofx_element = name.to_s.upcase)
+      @ofx_header_humane ||= Hash.new
+      
+      raise "Header #{name} already defined" if respond_to? name
+      @ofx_header_humane[ofx_element] = name
+      module_eval <<-"end;"
+        def #{name.to_s}
+          @headers[:#{name.to_s}]
+        end
+      
+        def #{name.to_s}=(value)
+          @headers[:#{name.to_s}] = value
+        end
+      end;
+    end
+
+    def property(ofx_element, value)
+      property_path = @current_path.dup << ofx_element
+      if property_name = self.class.ofx_paths[property_path]
+        self.send("#{property_name}=".to_sym, value)
+      end
+    end
+
+    def header(ofx_element, value)
+      assign = "#{self.class.ofx_header_humane[ofx_element]}=".to_sym
+      self.send(assign, value) if respond_to? assign
+    end
+    
+    def start(ofx_element)
+      @current_path.push(ofx_element)
+      if child_name = self.class.ofx_paths[@current_path]
+        self.send("#{child_name}=".to_sym, "OFXRB::#{child_name.to_s.camelize}".constantize.new)
+      else
+        self
+      end
+    end
+
+    def end?(ofx_element)
+      @current_path.pop unless @current_path.empty?
+      @current_path.empty?
     end
 
   end

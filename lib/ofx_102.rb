@@ -14,7 +14,7 @@ module OFXRB
 
   class Parser102 < Racc::Parser
 
-module_eval <<'..end ofx_102.y modeval..iddc2bd249fa', 'ofx_102.y', 35
+module_eval <<'..end ofx_102.y modeval..id5e48945e1f', 'ofx_102.y', 32
 def name_from_ofx(tag)
   $1 if tag =~ /<\/?(\w+)>/
 end
@@ -24,12 +24,21 @@ def end_tag_event(tag)
 end
 
 def start_tag_event(tag)
-  tag_event(tag, 'start')
+  tag_event(tag, 'start') unless start_of_property?
+end
+
+def start_of_property?
+  @tokens.first.first == :STRING
 end
 
 def tag_event(tag, type)
-  method = "#{name_from_ofx(tag).downcase}_#{type}_event".to_sym
-  @event_handler.send(method) if @event_handler.respond_to?(method)
+  tag_name = name_from_ofx(tag)
+  method = "#{tag_name.downcase}_#{type}_event".to_sym
+  if @event_handler.respond_to?(method)
+    @event_handler.send(method)
+  elsif @event_handler.respond_to?(generic_method = "#{type}_tag_event".to_sym)
+    @event_handler.send(generic_method, tag_name)
+  end
 end
 
 def self.parse(ofx_doc, root_object = OfxHandler.new)
@@ -68,7 +77,7 @@ private
 def next_token
   @tokens.shift
 end
-..end ofx_102.y modeval..iddc2bd249fa
+..end ofx_102.y modeval..id5e48945e1f
 
 ##### racc 1.4.5 generates ###
 
@@ -79,56 +88,50 @@ racc_reduce_table = [
  1, 8, :_reduce_none,
  3, 10, :_reduce_4,
  2, 9, :_reduce_none,
+ 2, 9, :_reduce_none,
  1, 9, :_reduce_none,
  1, 9, :_reduce_none,
  3, 11, :_reduce_none,
  2, 11, :_reduce_none,
- 2, 12, :_reduce_none,
- 2, 12, :_reduce_none,
- 1, 12, :_reduce_none,
- 2, 15, :_reduce_13,
- 2, 16, :_reduce_none,
- 1, 16, :_reduce_none,
- 1, 13, :_reduce_16,
- 1, 14, :_reduce_17 ]
+ 2, 12, :_reduce_11,
+ 1, 13, :_reduce_12,
+ 1, 14, :_reduce_13 ]
 
-racc_reduce_n = 18
+racc_reduce_n = 14
 
-racc_shift_n = 24
+racc_shift_n = 22
 
 racc_action_table = [
-    17,    15,    10,    19,     1,     1,    10,    14,     6,    10,
-     5,    10,    19 ]
+    17,    14,    10,    19,     1,     1,    10,    13,     6,    10,
+    10,     5,    19 ]
 
 racc_action_check = [
      9,     6,     9,     9,     3,     0,     3,     5,     2,     7,
-     1,    11,    20 ]
+     8,     1,    20 ]
 
 racc_action_pointer = [
-     3,     7,     8,     2,   nil,     5,     1,     5,   nil,    -2,
-   nil,     7,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,
-     7,   nil,   nil,   nil ]
+     3,     8,     8,     2,   nil,     5,     1,     5,     6,    -2,
+   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,
+     7,   nil ]
 
 racc_action_default = [
-   -18,   -18,   -18,   -18,    -3,   -18,   -18,    -7,    -6,   -18,
-   -16,   -12,    -1,    -2,    -4,    24,    -5,   -13,    -9,   -17,
-   -18,    -6,   -11,    -8 ]
+   -14,   -14,   -14,   -14,    -3,   -14,   -14,    -7,    -8,   -14,
+   -12,    -1,    -2,    -4,    22,    -5,    -6,   -11,   -10,   -13,
+   -14,    -9 ]
 
 racc_goto_table = [
-    18,    12,     3,     4,    21,    16,    13,    20,     2,    22,
-   nil,    23 ]
+    18,    11,     3,     2,   nil,    15,    16,    20,   nil,     4,
+   nil,    21,    12 ]
 
 racc_goto_check = [
-     8,     3,     2,     4,     6,     3,     4,     3,     1,     3,
-   nil,     8 ]
+     8,     3,     2,     1,   nil,     3,     3,     3,   nil,     4,
+   nil,     8,     4 ]
 
 racc_goto_pointer = [
-   nil,     8,     2,    -2,     3,   nil,    -7,   nil,    -9,   nil,
-   nil ]
+   nil,     3,     2,    -2,     9,   nil,   nil,   nil,    -9 ]
 
 racc_goto_default = [
-   nil,   nil,   nil,   nil,   nil,     7,     8,     9,   nil,    11,
-   nil ]
+   nil,   nil,   nil,   nil,   nil,     7,     8,     9,   nil ]
 
 racc_token_table = {
  false => 0,
@@ -171,11 +174,9 @@ Racc_token_to_s_table = [
 'objects',
 'key_value_pair',
 'object',
-'properties',
-'start_tag',
-'end_tag',
 'property',
-'end_tags']
+'start_tag',
+'end_tag']
 
 Racc_debug_parser = false
 
@@ -189,7 +190,7 @@ Racc_debug_parser = false
 
  # reduce 3 omitted
 
-module_eval <<'.,.,', 'ofx_102.y', 7
+module_eval <<'.,.,', 'ofx_102.y', 10
   def _reduce_4( val, _values, result )
 @event_handler.header_event(val[0], val[2])
    result
@@ -208,30 +209,22 @@ module_eval <<'.,.,', 'ofx_102.y', 7
 
  # reduce 10 omitted
 
- # reduce 11 omitted
-
- # reduce 12 omitted
-
 module_eval <<'.,.,', 'ofx_102.y', 20
-  def _reduce_13( val, _values, result )
+  def _reduce_11( val, _values, result )
 @event_handler.property_event(name_from_ofx(val[0]), val[1])
    result
   end
 .,.,
 
- # reduce 14 omitted
-
- # reduce 15 omitted
-
-module_eval <<'.,.,', 'ofx_102.y', 25
-  def _reduce_16( val, _values, result )
+module_eval <<'.,.,', 'ofx_102.y', 22
+  def _reduce_12( val, _values, result )
 start_tag_event(val[0])
    result
   end
 .,.,
 
-module_eval <<'.,.,', 'ofx_102.y', 27
-  def _reduce_17( val, _values, result )
+module_eval <<'.,.,', 'ofx_102.y', 24
+  def _reduce_13( val, _values, result )
 end_tag_event(val[0])
    result
   end

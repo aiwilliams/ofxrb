@@ -1,3 +1,6 @@
+# 2 reduce/reduce conflicts
+# 1 useless nonterminals and 3 useless rules
+
 class OFXRB::Parser102
 rule
 	root: headers objects
@@ -8,20 +11,14 @@ rule
 	key_value_pair: STRING COLON STRING {@event_handler.header_event(val[0], val[2])}
 	
 	objects: object objects
-	       | properties
+	       | property objects
 	       | object
+	       | property
 
   object: start_tag objects end_tag
         | start_tag end_tag
-  
-  properties: property properties
-            | property objects
-            | property
   	          
 	property: start_tag STRING {@event_handler.property_event(name_from_ofx(val[0]), val[1])}
-	
-	end_tags: end_tag end_tags
-	          | end_tag
 
 	start_tag: START_TAG {start_tag_event(val[0])}
 
@@ -41,12 +38,21 @@ def end_tag_event(tag)
 end
 
 def start_tag_event(tag)
-  tag_event(tag, 'start')
+  tag_event(tag, 'start') unless start_of_property?
+end
+
+def start_of_property?
+  @tokens.first.first == :STRING
 end
 
 def tag_event(tag, type)
-  method = "#{name_from_ofx(tag).downcase}_#{type}_event".to_sym
-  @event_handler.send(method) if @event_handler.respond_to?(method)
+  tag_name = name_from_ofx(tag)
+  method = "#{tag_name.downcase}_#{type}_event".to_sym
+  if @event_handler.respond_to?(method)
+    @event_handler.send(method)
+  elsif @event_handler.respond_to?(generic_method = "#{type}_tag_event".to_sym)
+    @event_handler.send(generic_method, tag_name)
+  end
 end
 
 def self.parse(ofx_doc, root_object = OfxHandler.new)
