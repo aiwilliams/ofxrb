@@ -14,7 +14,7 @@ module OFXRB
 
   class Parser102 < Racc::Parser
 
-module_eval <<'..end ofx_102.y modeval..id5e48945e1f', 'ofx_102.y', 32
+module_eval <<'..end ofx_102.y modeval..id03be97e846', 'ofx_102.y', 32
 def name_from_ofx(tag)
   $1 if tag =~ /<\/?(\w+)>/
 end
@@ -77,7 +77,7 @@ private
 def next_token
   @tokens.shift
 end
-..end ofx_102.y modeval..id5e48945e1f
+..end ofx_102.y modeval..id03be97e846
 
 ##### racc 1.4.5 generates ###
 
@@ -178,7 +178,7 @@ Racc_token_to_s_table = [
 'start_tag',
 'end_tag']
 
-Racc_debug_parser = false
+Racc_debug_parser = true
 
 ##### racc system variables end #####
 

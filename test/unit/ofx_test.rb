@@ -8,7 +8,7 @@ class OfxTest < Test::Unit::TestCase
     assert_equal('102', ofx_model.version)
     assert_equal('CAPITALONE', ofx_model.financial_institution.organization)
     assert_equal('RICHMOND', ofx_model.financial_institution.identifier)
-    # assert_equal('1234123412341234', ofx_model.credit_card_statements[0].account_number)
+    assert_equal('1234123412341234', ofx_model.credit_card_statements[0].number)
   
     ofx_model = OFXRB.import(fixture_checking_and_savings_102)
     assert_equal('102', ofx_model.version)

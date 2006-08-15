@@ -35,6 +35,7 @@ module OFXRB
       if new_state != @current
         @stack.push(@current)
         @current = new_state
+        new_state.ending_name = name
       end
     end
     
@@ -53,7 +54,10 @@ module OFXRB
       attr_reader :ofx_header_humane, :ofx_paths
     end
     
+    attr_writer :ending_name
+    
     def initialize
+      @ending_name = nil
       @current_path = []
       @children = {}
       @attributes = {}
@@ -85,7 +89,7 @@ module OFXRB
       @ofx_paths[ofx_path] = child_name
       module_eval <<-"end;"
         def #{child_name.to_s}
-          @children[:#{child_name.to_s}]
+          @children[:#{child_name.to_s}] ||= []
         end
       
         def #{child_name.to_s}=(value)
@@ -95,6 +99,13 @@ module OFXRB
     end
     
     def self.has_children(children_name, ofx_path = [children_name.to_s.upcase])
+      has_child(children_name, ofx_path)
+      module_eval <<-"end;"
+        def #{children_name.to_s}_add(child)
+          self.send(:#{children_name.to_s}) << child
+          child
+        end
+      end;
     end
 
     def self.has_header(name, ofx_element = name.to_s.upcase)
@@ -128,7 +139,14 @@ module OFXRB
     def start(ofx_element)
       @current_path.push(ofx_element)
       if child_name = self.class.ofx_paths[@current_path]
-        self.send("#{child_name}=".to_sym, "OFXRB::#{child_name.to_s.camelize}".constantize.new)
+        if child_name.to_s.plural?
+          assign = "#{child_name.to_s}_add"
+          object_class = child_name.to_s.singularize.camelize
+        else
+          assign = "#{child_name}="
+          object_class = child_name.to_s.camelize
+        end
+        self.send(assign.to_sym, "OFXRB::#{object_class}".constantize.new)
       else
         self
       end
@@ -136,7 +154,7 @@ module OFXRB
 
     def end?(ofx_element)
       @current_path.pop unless @current_path.empty?
-      @current_path.empty?
+      @ending_name == ofx_element
     end
 
   end
