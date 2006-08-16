@@ -1,4 +1,16 @@
+# Usage
+#
+#   ofx_instance = OFXRB.import(ofx_doc)
+#   ofx_instance.credit_card_statements.each do |cc|
+#     puts cc.number
+#     puts cc.start_date
+#     puts cc.end_date
+#   end
+#
+# See OFXRB::Model to learn more about what objects are available or to define those that
+# we have not yet.
 module OFXRB
+
   # Creates an OfxObject for the version detected in the ofx_doc
   def self.import(ofx_doc)
     raise "Not a valid OFX document. Must contain OFXHEADER value." unless ofx_doc =~ /.*?OFXHEADER/
@@ -11,15 +23,22 @@ module OFXRB
   end
 
 
-  # The basic OFX document event handler, used to create an OFX model from
-  # an OFX document
+  # Implements the interface expected by the Parsers
+  #
+  # This keeps track of the current OFXRB::OfxObject, delegating processing of ofx document events
+  # to the current OFXRB::OfxObject. Once the current OFXRB::OfxObject has ended, the previous object is
+  # reinstated and regains control of processing, until he has ended, and so on to the end of the document.
+  #
+  # If you have need of presently unsupported attributes or OFXRB::OfxObject, or just need to know what is
+  # already there, please look at ofx_model.rb.
   class OfxHandler
+
     # All handlers answer the OFX object model that they are building
     attr_reader :ofx_object
 
     def initialize
       @stack = []
-      @current = @ofx_object = OfxInstance.new
+      @current = @ofx_object = Model::OfxInstance.new
     end
 
     def header_event(name, value)
@@ -48,6 +67,8 @@ module OFXRB
   end
 
 
+  # All OFXRB::Model classes extend this to provide a DSL that simplifies and clarifies
+  # the desired structure of an imported OFX document.
   class OfxObject
 
     class << self
@@ -147,7 +168,7 @@ module OFXRB
           assign = "#{child_name}="
           object_class = child_name.to_s.camelize
         end
-        self.send(assign.to_sym, "OFXRB::#{object_class}".constantize.new)
+        self.send(assign.to_sym, "OFXRB::Model::#{object_class}".constantize.new)
       else
         self
       end
