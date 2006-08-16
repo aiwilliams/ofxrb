@@ -71,12 +71,12 @@ module OFXRB
       def has_one(child_name, ofx_path = [child_name.to_s.upcase])
         ofx_paths[ofx_path] = child_name
         module_eval <<-"end;"
-          def #{child_name.to_s}
-            @children[:#{child_name.to_s}] ||= []
+          def #{child_name}
+            @children[:#{child_name}] ||= []
           end
       
-          def #{child_name.to_s}=(value)
-            @children[:#{child_name.to_s}] = value
+          def #{child_name}=(value)
+            @children[:#{child_name}] = value
           end
         end;
       end
@@ -84,8 +84,8 @@ module OFXRB
       def has_many(children_name, ofx_path = [children_name.to_s.upcase])
         has_one(children_name, ofx_path)
         module_eval <<-"end;"
-          def #{children_name.to_s}_add(child)
-            send(:#{children_name.to_s}) << child
+          def #{children_name}_add(child)
+            send(:#{children_name}) << child
             child
           end
         end;
@@ -99,13 +99,15 @@ module OFXRB
       private
         def ofx_attr_accessor(attr_name, attr_type)
           module_eval <<-"end;"
-            def #{attr_name.to_s}
-              @#{attr_type}[:#{attr_name.to_s}]
+            def #{attr_name}
+              @#{attr_type}[:#{attr_name}]
             end
+            alias :ofx_attr_#{attr_name} :#{attr_name}
 
-            def #{attr_name.to_s}=(value)
-              @#{attr_type}[:#{attr_name.to_s}] = value
+            def #{attr_name}=(value)
+              @#{attr_type}[:#{attr_name}] = value
             end
+            alias :ofx_attr_#{attr_name}= :#{attr_name}=
           end;
         end
     end
@@ -141,7 +143,7 @@ module OFXRB
       @current_path.push(ofx_element)
       if child_name = self.class.ofx_paths[@current_path]
         if child_name.to_s.plural?
-          assign = "#{child_name.to_s}_add"
+          assign = "#{child_name}_add"
           object_class = child_name.to_s.singularize.camelize
         else
           assign = "#{child_name}="
