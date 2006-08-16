@@ -14,7 +14,7 @@ module OFXRB
 
   class Parser102 < Racc::Parser
 
-module_eval <<'..end ofx_102.y modeval..id03be97e846', 'ofx_102.y', 32
+module_eval <<'..end ofx_102.y modeval..id13210f3afe', 'ofx_102.y', 32
 def name_from_ofx(tag)
   $1 if tag =~ /<\/?(\w+)>/
 end
@@ -24,10 +24,10 @@ def end_tag_event(tag)
 end
 
 def start_tag_event(tag)
-  tag_event(tag, 'start') unless start_of_property?
+  tag_event(tag, 'start') unless start_of_attribute?
 end
 
-def start_of_property?
+def start_of_attribute?
   @tokens.first.first == :STRING
 end
 
@@ -77,7 +77,7 @@ private
 def next_token
   @tokens.shift
 end
-..end ofx_102.y modeval..id03be97e846
+..end ofx_102.y modeval..id13210f3afe
 
 ##### racc 1.4.5 generates ###
 
@@ -174,11 +174,11 @@ Racc_token_to_s_table = [
 'objects',
 'key_value_pair',
 'object',
-'property',
+'attribute',
 'start_tag',
 'end_tag']
 
-Racc_debug_parser = true
+Racc_debug_parser = false
 
 ##### racc system variables end #####
 
@@ -211,7 +211,7 @@ module_eval <<'.,.,', 'ofx_102.y', 10
 
 module_eval <<'.,.,', 'ofx_102.y', 20
   def _reduce_11( val, _values, result )
-@event_handler.property_event(name_from_ofx(val[0]), val[1])
+@event_handler.attribute_event(name_from_ofx(val[0]), val[1])
    result
   end
 .,.,

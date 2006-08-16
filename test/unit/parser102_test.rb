@@ -27,8 +27,8 @@ class Parser102Test < Test::Unit::TestCase
         events << 'bankmsgsrsv1_end'
       end
 
-      def property_event(name, value)
-        events << name + '_property'
+      def attribute_event(name, value)
+        events << name + '_attribute'
       end
 
       def events
@@ -45,10 +45,10 @@ class Parser102Test < Test::Unit::TestCase
     assert_events([
       'VERSION_header',
       'OFX_start',
-      'CODE_property',
+      'CODE_attribute',
       'SIGNONMSGSRSV1_start',
       'SIGNONMSGSRSV1_end',
-      'PROPERTY_property',
+      'ATTRIBUTE_attribute',
       'bankmsgsrsv1_start',
       'bankmsgsrsv1_end',
       'OFX_end',

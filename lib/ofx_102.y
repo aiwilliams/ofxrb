@@ -11,14 +11,14 @@ rule
 	key_value_pair: STRING COLON STRING {@event_handler.header_event(val[0], val[2])}
 	
 	objects: object objects
-	       | property objects
+	       | attribute objects
 	       | object
-	       | property
+	       | attribute
 
   object: start_tag objects end_tag
         | start_tag end_tag
   	          
-	property: start_tag STRING {@event_handler.property_event(name_from_ofx(val[0]), val[1])}
+	attribute: start_tag STRING {@event_handler.attribute_event(name_from_ofx(val[0]), val[1])}
 
 	start_tag: START_TAG {start_tag_event(val[0])}
 
@@ -38,10 +38,10 @@ def end_tag_event(tag)
 end
 
 def start_tag_event(tag)
-  tag_event(tag, 'start') unless start_of_property?
+  tag_event(tag, 'start') unless start_of_attribute?
 end
 
-def start_of_property?
+def start_of_attribute?
   @tokens.first.first == :STRING
 end
 

@@ -23,15 +23,15 @@ module OFXRB
     end
 
     def header_event(name, value)
-      @current.header(name, value)
+      @current.ofx_header(name, value)
     end
 
-    def property_event(name, value)
-      @current.property(name, value)
+    def attribute_event(name, value)
+      @current.ofx_attr(name, value)
     end
 
     def start_tag_event(name)
-      new_state = @current.start(name)
+      new_state = @current.ofx_start_tag(name)
       if new_state != @current
         @stack.push(@current)
         @current = new_state
@@ -40,7 +40,7 @@ module OFXRB
     end
     
     def end_tag_event(name)
-      while @current and @current.end?(name)
+      while @current and @current.ofx_end(name)
         @current = @stack.pop
       end
     end
@@ -50,10 +50,67 @@ module OFXRB
 
   class OfxObject
 
-    class <<self
-      attr_reader :ofx_header_humane, :ofx_paths
+    class << self
+
+      def ofx_reverse_lookup_header
+        @ofx_reverse_lookup_header ||= Hash.new
+      end
+
+      def ofx_paths
+        @ofx_paths ||= Hash.new
+      end
+
+      def has_attrs(mapping)
+        mapping.each do |name, ofx_path|
+          ofx_path = [ofx_path] if ofx_path.is_a? String
+          ofx_paths[ofx_path] = name
+          ofx_attr_accessor(name, :attributes)
+        end
+      end
+    
+      def has_one(child_name, ofx_path = [child_name.to_s.upcase])
+        ofx_paths[ofx_path] = child_name
+        module_eval <<-"end;"
+          def #{child_name.to_s}
+            @children[:#{child_name.to_s}] ||= []
+          end
+      
+          def #{child_name.to_s}=(value)
+            @children[:#{child_name.to_s}] = value
+          end
+        end;
+      end
+    
+      def has_many(children_name, ofx_path = [children_name.to_s.upcase])
+        has_one(children_name, ofx_path)
+        module_eval <<-"end;"
+          def #{children_name.to_s}_add(child)
+            send(:#{children_name.to_s}) << child
+            child
+          end
+        end;
+      end
+
+      def has_header(name, ofx_element = name.to_s.upcase)
+        ofx_reverse_lookup_header[ofx_element] = name
+        ofx_attr_accessor(name, :headers)
+      end
+    
+      private
+        def ofx_attr_accessor(attr_name, attr_type)
+          module_eval <<-"end;"
+            def #{attr_name.to_s}
+              @#{attr_type}[:#{attr_name.to_s}]
+            end
+
+            def #{attr_name.to_s}=(value)
+              @#{attr_type}[:#{attr_name.to_s}] = value
+            end
+          end;
+        end
     end
     
+
     attr_writer :ending_name
     
     def initialize
@@ -64,79 +121,23 @@ module OFXRB
       @headers = {}
     end
 
-    def self.has_attrs(mapping)
-      @ofx_paths ||= {}
-
-      mapping.each do |name, ofx_path|
-        ofx_path = [ofx_path] if ofx_path.is_a? String
-        @ofx_paths[ofx_path] = name
-        module_eval <<-"end;"
-          def #{name.to_s}
-            @attributes[:#{name.to_s}]
-          end
-
-          def #{name.to_s}=(value)
-            @attributes[:#{name.to_s}] = value
-          end
-        end;
-      end
-    end
-    
-    def self.has_child(child_name, ofx_path = [child_name.to_s.upcase])
-      @ofx_paths ||= {}
-      
-      raise "Child #{child_name} already defined" if respond_to? child_name
-      @ofx_paths[ofx_path] = child_name
-      module_eval <<-"end;"
-        def #{child_name.to_s}
-          @children[:#{child_name.to_s}] ||= []
-        end
-      
-        def #{child_name.to_s}=(value)
-          @children[:#{child_name.to_s}] = value
-        end
-      end;
-    end
-    
-    def self.has_children(children_name, ofx_path = [children_name.to_s.upcase])
-      has_child(children_name, ofx_path)
-      module_eval <<-"end;"
-        def #{children_name.to_s}_add(child)
-          self.send(:#{children_name.to_s}) << child
-          child
-        end
-      end;
+    def attribute(name)
+      @attributes[name.to_sym]
     end
 
-    def self.has_header(name, ofx_element = name.to_s.upcase)
-      @ofx_header_humane ||= Hash.new
-      
-      raise "Header #{name} already defined" if respond_to? name
-      @ofx_header_humane[ofx_element] = name
-      module_eval <<-"end;"
-        def #{name.to_s}
-          @headers[:#{name.to_s}]
-        end
-      
-        def #{name.to_s}=(value)
-          @headers[:#{name.to_s}] = value
-        end
-      end;
-    end
-
-    def property(ofx_element, value)
-      property_path = @current_path.dup << ofx_element
-      if property_name = self.class.ofx_paths[property_path]
-        self.send("#{property_name}=".to_sym, value)
+    def ofx_attr(ofx_element, value)
+      attribute_path = @current_path.dup << ofx_element
+      if attribute_name = self.class.ofx_paths[attribute_path]
+        self.send("#{attribute_name}=".to_sym, value)
       end
     end
 
-    def header(ofx_element, value)
-      assign = "#{self.class.ofx_header_humane[ofx_element]}=".to_sym
+    def ofx_header(ofx_element, value)
+      assign = "#{self.class.ofx_reverse_lookup_header[ofx_element]}=".to_sym
       self.send(assign, value) if respond_to? assign
     end
     
-    def start(ofx_element)
+    def ofx_start_tag(ofx_element)
       @current_path.push(ofx_element)
       if child_name = self.class.ofx_paths[@current_path]
         if child_name.to_s.plural?
@@ -152,7 +153,7 @@ module OFXRB
       end
     end
 
-    def end?(ofx_element)
+    def ofx_end(ofx_element)
       @current_path.pop unless @current_path.empty?
       @ending_name == ofx_element
     end

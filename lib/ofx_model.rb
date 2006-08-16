@@ -7,13 +7,17 @@ module OFXRB
 
 
   class Status < OfxObject
-    has_attrs :code => 'CODE',
+    has_attrs :code     => 'CODE',
               :severity => 'SEVERITY'
   end
 
 
-  class Transaction
+  class Transaction < OfxObject
+    has_attrs :amount => 'TRNAMT'
     
+    def amount
+      attribute(:amount).gsub(/\./, '').to_i
+    end
   end
 
 
@@ -24,18 +28,18 @@ module OFXRB
               :start_date => ['CCSTMTRS', 'BANKTRANLIST', 'DTSTART'],
               :end_date   => ['CCSTMTRS', 'BANKTRANLIST', 'DTEND']
               
-    has_child :status
+    has_one :status
 
-    # has_children :transactions, ['CCSTMTRS', 'BANKTRANLIST', 'STMTTRN']
+    has_many :transactions, ['CCSTMTRS', 'BANKTRANLIST', 'STMTTRN']
   end
 
   class OfxInstance < OfxObject
     has_header :version
 
-    has_child     :status, ['OFX', 'SIGNONMSGSRSV1', 'SONRS', 'STATUS']
-    has_child     :financial_institution, ['OFX', 'SIGNONMSGSRSV1', 'SONRS', 'FI']
+    has_one     :status, ['OFX', 'SIGNONMSGSRSV1', 'SONRS', 'STATUS']
+    has_one     :financial_institution, ['OFX', 'SIGNONMSGSRSV1', 'SONRS', 'FI']
 
-    has_children  :credit_card_statements, ['OFX', 'CREDITCARDMSGSRSV1', 'CCSTMTTRNRS']
+    has_many  :credit_card_statements, ['OFX', 'CREDITCARDMSGSRSV1', 'CCSTMTTRNRS']
   end
   
 end
