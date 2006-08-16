@@ -70,19 +70,12 @@ module OFXRB
     
       def has_one(child_name, ofx_path = [child_name.to_s.upcase])
         ofx_paths[ofx_path] = child_name
-        module_eval <<-"end;"
-          def #{child_name}
-            @children[:#{child_name}] ||= []
-          end
-      
-          def #{child_name}=(value)
-            @children[:#{child_name}] = value
-          end
-        end;
+        ofx_attr_accessor(child_name, :children)
       end
     
       def has_many(children_name, ofx_path = [children_name.to_s.upcase])
-        has_one(children_name, ofx_path)
+        ofx_paths[ofx_path] = children_name
+        ofx_attr_accessor(children_name, :children, 'Array.new')
         module_eval <<-"end;"
           def #{children_name}_add(child)
             send(:#{children_name}) << child
@@ -97,10 +90,15 @@ module OFXRB
       end
     
       private
-        def ofx_attr_accessor(attr_name, attr_type)
+      
+        # Creates attr_accessor for attr_name
+        # <tt>:attr_name</tt>: A Symbol for the desired reader and writer method name
+        # <tt>:attr_type</tt>: A Symbol for the name of the instance variable that is the attribute's collection
+        # <tt>:default_value</tt>: Optional, a String that would be used to initialize the attribute if it is nil
+        def ofx_attr_accessor(attr_name, attr_type, default_value = nil)
           module_eval <<-"end;"
             def #{attr_name}
-              @#{attr_type}[:#{attr_name}]
+              @#{attr_type}[:#{attr_name}] ||= #{default_value ? default_value : 'nil'}
             end
             alias :ofx_attr_#{attr_name} :#{attr_name}
 
