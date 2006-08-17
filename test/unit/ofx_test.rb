@@ -10,7 +10,7 @@ class OfxTest < Test::Unit::TestCase
     assert_equal('RICHMOND', ofx_model.financial_institution.identifier)
     
     cc = ofx_model.credit_card_statements[0]
-    assert_equal(ParseDate.parse('20060609170000'), cc.start_date)
+    assert_equal(ofx_time('20060609170000'), cc.start_date)
     assert_equal('1234123412341234', cc.number)
     assert_equal(4274, cc.transactions[0].amount)
   

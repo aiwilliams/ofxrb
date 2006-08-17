@@ -4,6 +4,10 @@ require 'test/unit'
 require 'ofxrb'
 
 module OfxTestHelp
+  def ofx_time(time)
+    Time.local(*ParseDate.parsedate(time))
+  end
+
   def read_fixture(name)
     File.read(File.dirname(__FILE__) + "/../fixtures/#{name}.ofx")
   end
