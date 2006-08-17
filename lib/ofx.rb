@@ -80,22 +80,36 @@ module OFXRB
       def ofx_paths
         @ofx_paths ||= Hash.new
       end
+      
+      def ofx_types
+        @ofx_types ||= Hash.new
+      end
+
+      def has_attr(name, ofx_path = [name.to_s.upcase], type = :string)
+        register_path(name, ofx_path, type)
+        ofx_attr_accessor(name, :attributes)
+      end
 
       def has_attrs(mapping)
-        mapping.each do |name, ofx_path|
-          ofx_path = [ofx_path] if ofx_path.is_a? String
-          ofx_paths[ofx_path] = name
-          ofx_attr_accessor(name, :attributes)
+        mapping.each do |name, meta|
+          case meta
+          when String, Array
+            has_attr(name, meta)
+          when Hash
+            options = {:type => :string}.update(meta)
+            has_attr(name, options[:path], options[:type])
+          else raise "Must be a String or Array for the path or a Hash with :path and optional :type"
+          end
         end
       end
     
       def has_one(child_name, ofx_path = [child_name.to_s.upcase])
-        ofx_paths[ofx_path] = child_name
+        register_path(child_name, ofx_path)
         ofx_attr_accessor(child_name, :children)
       end
     
       def has_many(children_name, ofx_path = [children_name.to_s.upcase])
-        ofx_paths[ofx_path] = children_name
+        register_path(children_name, ofx_path)
         ofx_attr_accessor(children_name, :children, 'Array.new')
         module_eval <<-"end;"
           def #{children_name}_add(child)
@@ -109,17 +123,19 @@ module OFXRB
         ofx_reverse_lookup_header[ofx_element] = name
         ofx_attr_accessor(name, :headers)
       end
-    
+
       private
       
         # Creates attr_accessor for attr_name
         # <tt>:attr_name</tt>: A Symbol for the desired reader and writer method name
-        # <tt>:attr_type</tt>: A Symbol for the name of the instance variable that is the attribute's collection
+        # <tt>:attr_type</tt>: A Symbol for the name of the instance variable that is the attribute's collection, like :headers, :attributes, etc.
         # <tt>:default_value</tt>: Optional, a String that would be used to initialize the attribute if it is nil
         def ofx_attr_accessor(attr_name, attr_type, default_value = nil)
           module_eval <<-"end;"
             def #{attr_name}
-              @#{attr_type}[:#{attr_name}] ||= #{default_value ? default_value : 'nil'}
+              value = @#{attr_type}[:#{attr_name}] ||= #{default_value ? default_value : 'nil'}
+              return value if value.is_a?(Array)
+              type_cast(value, type_for_name(:#{attr_name}))
             end
             alias :ofx_attr_#{attr_name} :#{attr_name}
 
@@ -129,8 +145,15 @@ module OFXRB
             alias :ofx_attr_#{attr_name}= :#{attr_name}=
           end;
         end
+        
+        def register_path(name, path, type = :string)
+          path = [path] if path.is_a? String
+          ofx_paths[path] = name
+          ofx_types[name] = type
+        end
     end
-    
+
+    include TypeCasting
 
     attr_writer :ending_name
     
@@ -148,7 +171,7 @@ module OFXRB
 
     def ofx_attr(ofx_element, value)
       attribute_path = @current_path.dup << ofx_element
-      if attribute_name = self.class.ofx_paths[attribute_path]
+      if attribute_name = name_for_path(attribute_path)
         self.send("#{attribute_name}=".to_sym, value)
       end
     end
@@ -160,7 +183,7 @@ module OFXRB
     
     def ofx_start_tag(ofx_element)
       @current_path.push(ofx_element)
-      if child_name = self.class.ofx_paths[@current_path]
+      if child_name = name_for_path(@current_path)
         if child_name.to_s.plural?
           assign = "#{child_name}_add"
           object_class = child_name.to_s.singularize.camelize
@@ -179,6 +202,15 @@ module OFXRB
       @ending_name == ofx_element
     end
 
+    private
+    
+      def name_for_path(path)
+        self.class.ofx_paths[path]
+      end
+      
+      def type_for_name(name)
+        self.class.ofx_types[name]
+      end
   end
 
 end

@@ -14,11 +14,7 @@ module OFXRB
 
 
     class Transaction < OfxObject
-      has_attrs :amount => 'TRNAMT'
-    
-      def amount
-        attribute(:amount).gsub(/\./, '').to_i
-      end
+      has_attr :amount, 'TRNAMT', :money
     end
 
 
@@ -26,8 +22,8 @@ module OFXRB
       has_attrs :identifier => 'TRNUID',
                 :currency   => ['CCSTMTRS', 'CURDEF'],
                 :number     => ['CCSTMTRS', 'CCACCTFROM', 'ACCTID'],
-                :start_date => ['CCSTMTRS', 'BANKTRANLIST', 'DTSTART'],
-                :end_date   => ['CCSTMTRS', 'BANKTRANLIST', 'DTEND']
+                :start_date => {:path => ['CCSTMTRS', 'BANKTRANLIST', 'DTSTART'], :type => :datetime},
+                :end_date   => {:path => ['CCSTMTRS', 'BANKTRANLIST', 'DTEND'], :type => :datetime}
               
       has_one :status
 
