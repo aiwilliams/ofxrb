@@ -16,7 +16,8 @@ module OFXRB
     class Transaction < OfxObject
       has_attrs :amount         => {:path => 'TRNAMT',
                                     :type => :money},
-                :date           => 'DTPOSTED',
+                :date           => {:path => 'DTPOSTED',
+                                    :type => :datetime},
                 :name           => 'NAME',
                 :memo           => 'MEMO',
                 :fi_identifier  => {:path => 'FITID',
