@@ -47,6 +47,8 @@ class Parser102Test < Test::Unit::TestCase
       'OFX_start',
       'CODE_attribute',
       'SIGNONMSGSRSV1_start',
+      'CUSTOM.EXT_start',
+      'CUSTOM.EXT_end',
       'SIGNONMSGSRSV1_end',
       'ATTRIBUTE_attribute',
       'bankmsgsrsv1_start',

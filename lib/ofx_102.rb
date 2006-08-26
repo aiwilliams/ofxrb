@@ -14,9 +14,9 @@ module OFXRB
 
   class Parser102 < Racc::Parser
 
-module_eval <<'..end ofx_102.y modeval..id13210f3afe', 'ofx_102.y', 32
+module_eval <<'..end ofx_102.y modeval..id197ebbe839', 'ofx_102.y', 29
 def name_from_ofx(tag)
-  $1 if tag =~ /<\/?(\w+)>/
+  $1 if tag =~ /<\/?(\w+|\w+\.\w+)>/
 end
 
 def end_tag_event(tag)
@@ -49,8 +49,8 @@ def parse(ofx_doc, event_handler)
   @event_handler = event_handler
 
   @match_tokens = {
-    :START_TAG => /<\w+>/,
-    :END_TAG => /<\/\w+>/,
+    :START_TAG => /<(\w+|\w+\.\w+)>/,
+    :END_TAG => /<\/(\w+|\w+\.\w+)>/,
     :STRING => /[^\r\n<>:]+/,
     :COLON => /:/,
   }
@@ -77,7 +77,7 @@ private
 def next_token
   @tokens.shift
 end
-..end ofx_102.y modeval..id13210f3afe
+..end ofx_102.y modeval..id197ebbe839
 
 ##### racc 1.4.5 generates ###
 
@@ -190,7 +190,7 @@ Racc_debug_parser = false
 
  # reduce 3 omitted
 
-module_eval <<'.,.,', 'ofx_102.y', 10
+module_eval <<'.,.,', 'ofx_102.y', 7
   def _reduce_4( val, _values, result )
 @event_handler.header_event(val[0], val[2])
    result
@@ -209,21 +209,21 @@ module_eval <<'.,.,', 'ofx_102.y', 10
 
  # reduce 10 omitted
 
-module_eval <<'.,.,', 'ofx_102.y', 20
+module_eval <<'.,.,', 'ofx_102.y', 17
   def _reduce_11( val, _values, result )
 @event_handler.attribute_event(name_from_ofx(val[0]), val[1])
    result
   end
 .,.,
 
-module_eval <<'.,.,', 'ofx_102.y', 22
+module_eval <<'.,.,', 'ofx_102.y', 19
   def _reduce_12( val, _values, result )
 start_tag_event(val[0])
    result
   end
 .,.,
 
-module_eval <<'.,.,', 'ofx_102.y', 24
+module_eval <<'.,.,', 'ofx_102.y', 21
   def _reduce_13( val, _values, result )
 end_tag_event(val[0])
    result

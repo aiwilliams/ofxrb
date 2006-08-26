@@ -1,6 +1,3 @@
-# 2 reduce/reduce conflicts
-# 1 useless nonterminals and 3 useless rules
-
 class OFXRB::Parser102
 rule
 	root: headers objects
@@ -30,7 +27,7 @@ require 'strscan'
 
 ---- inner ----
 def name_from_ofx(tag)
-  $1 if tag =~ /<\/?(\w+)>/
+  $1 if tag =~ /<\/?(\w+|\w+\.\w+)>/
 end
 
 def end_tag_event(tag)
@@ -63,8 +60,8 @@ def parse(ofx_doc, event_handler)
   @event_handler = event_handler
 
   @match_tokens = {
-    :START_TAG => /<\w+>/,
-    :END_TAG => /<\/\w+>/,
+    :START_TAG => /<(\w+|\w+\.\w+)>/,
+    :END_TAG => /<\/(\w+|\w+\.\w+)>/,
     :STRING => /[^\r\n<>:]+/,
     :COLON => /:/,
   }
