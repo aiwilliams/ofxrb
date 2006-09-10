@@ -14,8 +14,10 @@ rule
 
   object: start_tag objects end_tag
         | start_tag end_tag
-  	          
-	attribute: start_tag STRING {@event_handler.attribute_event(name_from_ofx(val[0]), val[1])}
+
+	attribute: start_tag NOTHING end_tag {attribute_event(val[0], nil)}
+	         | start_tag STRING CARRIAGE {attribute_event(val[0], val[1])}
+	         | start_tag STRING end_tag {attribute_event(val[0], val[1])}
 
 	start_tag: START_TAG {start_tag_event(val[0])}
 
@@ -30,16 +32,27 @@ def name_from_ofx(tag)
   $1 if tag =~ /<\/?(\w+|\w+\.\w+)>/
 end
 
+def attribute_event(tag, value)
+  @event_handler.attribute_event(name_from_ofx(tag), value)
+  @in_attribute = false
+end
+
 def end_tag_event(tag)
-  tag_event(tag, 'end')
+  tag_event(tag, 'end') unless end_of_attribute?
 end
 
 def start_tag_event(tag)
   tag_event(tag, 'start') unless start_of_attribute?
 end
 
+def end_of_attribute?
+  end_attr = @in_attribute
+  @in_attribute = false
+  end_attr
+end
+
 def start_of_attribute?
-  @tokens.first.first == :STRING
+  @in_attribute = [:STRING, :NOTHING].include?(@tokens.first.first)
 end
 
 def tag_event(tag, type)
@@ -59,21 +72,35 @@ end
 def parse(ofx_doc, event_handler)
   @event_handler = event_handler
 
-  @match_tokens = {
-    :START_TAG => /<(\w+|\w+\.\w+)>/,
-    :END_TAG => /<\/(\w+|\w+\.\w+)>/,
-    :STRING => /[^\r\n<>:]+/,
-    :COLON => /:/,
-  }
+  start_tag = [:START_TAG, /<(\w+|\w+\.\w+)>/]
+  end_tag = [:END_TAG, /<\/(\w+|\w+\.\w+)>/]
+  carriage = [:CARRIAGE, /[\r\n]/]
 
+  @in_body = false
+  @match_tokens = [start_tag, end_tag, [:STRING, /[^\r\n<>:]+/], [:COLON, /:/]]
   @tokens, s = [], StringScanner.new(ofx_doc)
   until s.eos?
-    s.scan(/\s*/)
+    if @in_body then s.scan(/[\f\t ]*/) else s.scan(/\s*/) end
     @match_tokens.each do |key, value|
       if s.scan(value)
-        @tokens << [key, s.matched]
-        # Redefine string after headers so that : is allowed in values
-        @match_tokens[:STRING] = /[^\r\n<>]+/ if key == :START_TAG        
+        # Handle case where there is a blank line
+        break if :CARRIAGE == key and @tokens.last.first == :CARRIAGE
+        matched = s.matched
+        if [:START_TAG, :END_TAG].include?(key)
+          unless @in_body
+            # Redefine string after headers so that : is allowed in values
+            # and start tracking carriage returns so that attributes can be determined
+            @match_tokens = [start_tag, end_tag, [:STRING, /[^\r\n<>]+/], carriage]
+            @in_body = true
+          end
+          # Consume the carriages that come immediately after start/end tags
+          while s.check(/[\f\t ]*[\r\n]/)
+            s.scan(/[\f\t ]*[\r\n]/)
+          end
+        end
+        @tokens << [key, matched]
+        # Handle case where an attribute has nothing, not even a single space
+        @tokens << [:NOTHING, ""] if :START_TAG == key and s.check(end_tag[1])
         break # to consume more whitespace, move forward
       end
     end

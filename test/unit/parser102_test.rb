@@ -19,6 +19,8 @@ class Parser102Test < Test::Unit::TestCase
         events << name + "_end"
       end
       
+      # If you have a method matching "#{tag_name.downcase}_#{type}_event", it will
+      # be called instead of the generic start_tag_event
       def bankmsgsrsv1_start_event
         events << 'bankmsgsrsv1_start'
       end
@@ -52,6 +54,9 @@ class Parser102Test < Test::Unit::TestCase
       'SIGNONMSGSRSV1_end',
       'ATTRIBUTE_attribute',
       'bankmsgsrsv1_start',
+      'OPENCLOSE_attribute',
+      'OPENATTRCLOSE_attribute',
+      'NOCLOSEATTR_attribute',
       'bankmsgsrsv1_end',
       'OFX_end',
     ], my_handler.events)

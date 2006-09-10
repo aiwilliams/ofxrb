@@ -1,10 +1,12 @@
 require 'rake'
 require 'rake/testtask'
+require 'getoptlong'
 
 task :default => ["gem"]
 
 desc "Execute racc to generate parsers"
 file "lib/ofx_102.rb" => ["lib/ofx_102.y"] do
+  # add -g to generate testing support, and enable yydebug in ofx_102.y
   Dir.chdir('lib') { sh "racc -o ofx_102.rb ofx_102.y" }
 end
 
@@ -33,8 +35,8 @@ task :gem => ["lib/ofx_102.rb", :test_units] do
 end
 
 desc "Run tests"
-Rake::TestTask.new(:test_units) { |t|
+Rake::TestTask.new(:test_units) do |t|
   t.pattern = 'test/unit/*_test.rb'
   t.verbose = true
   t.warning = true
-}
+end

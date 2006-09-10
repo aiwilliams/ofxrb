@@ -14,21 +14,32 @@ module OFXRB
 
   class Parser102 < Racc::Parser
 
-module_eval <<'..end ofx_102.y modeval..id197ebbe839', 'ofx_102.y', 29
+module_eval <<'..end ofx_102.y modeval..id8ba4ba7a31', 'ofx_102.y', 31
 def name_from_ofx(tag)
   $1 if tag =~ /<\/?(\w+|\w+\.\w+)>/
 end
 
+def attribute_event(tag, value)
+  @event_handler.attribute_event(name_from_ofx(tag), value)
+  @in_attribute = false
+end
+
 def end_tag_event(tag)
-  tag_event(tag, 'end')
+  tag_event(tag, 'end') unless end_of_attribute?
 end
 
 def start_tag_event(tag)
   tag_event(tag, 'start') unless start_of_attribute?
 end
 
+def end_of_attribute?
+  end_attr = @in_attribute
+  @in_attribute = false
+  end_attr
+end
+
 def start_of_attribute?
-  @tokens.first.first == :STRING
+  @in_attribute = [:STRING, :NOTHING].include?(@tokens.first.first)
 end
 
 def tag_event(tag, type)
@@ -48,21 +59,35 @@ end
 def parse(ofx_doc, event_handler)
   @event_handler = event_handler
 
-  @match_tokens = {
-    :START_TAG => /<(\w+|\w+\.\w+)>/,
-    :END_TAG => /<\/(\w+|\w+\.\w+)>/,
-    :STRING => /[^\r\n<>:]+/,
-    :COLON => /:/,
-  }
+  start_tag = [:START_TAG, /<(\w+|\w+\.\w+)>/]
+  end_tag = [:END_TAG, /<\/(\w+|\w+\.\w+)>/]
+  carriage = [:CARRIAGE, /[\r\n]/]
 
+  @in_body = false
+  @match_tokens = [start_tag, end_tag, [:STRING, /[^\r\n<>:]+/], [:COLON, /:/]]
   @tokens, s = [], StringScanner.new(ofx_doc)
   until s.eos?
-    s.scan(/\s*/)
+    if @in_body then s.scan(/[\f\t ]*/) else s.scan(/\s*/) end
     @match_tokens.each do |key, value|
       if s.scan(value)
-        @tokens << [key, s.matched]
-        # Redefine string after headers so that : is allowed in values
-        @match_tokens[:STRING] = /[^\r\n<>]+/ if key == :START_TAG        
+        # Handle case where there is a blank line
+        break if :CARRIAGE == key and @tokens.last.first == :CARRIAGE
+        matched = s.matched
+        if [:START_TAG, :END_TAG].include?(key)
+          unless @in_body
+            # Redefine string after headers so that : is allowed in values
+            # and start tracking carriage returns so that attributes can be determined
+            @match_tokens = [start_tag, end_tag, [:STRING, /[^\r\n<>]+/], carriage]
+            @in_body = true
+          end
+          # Consume the carriages that come immediately after start/end tags
+          while s.check(/[\f\t ]*[\r\n]/)
+            s.scan(/[\f\t ]*[\r\n]/)
+          end
+        end
+        @tokens << [key, matched]
+        # Handle case where an attribute has nothing, not even a single space
+        @tokens << [:NOTHING, ""] if :START_TAG == key and s.check(end_tag[1])
         break # to consume more whitespace, move forward
       end
     end
@@ -77,73 +102,77 @@ private
 def next_token
   @tokens.shift
 end
-..end ofx_102.y modeval..id197ebbe839
+..end ofx_102.y modeval..id8ba4ba7a31
 
 ##### racc 1.4.5 generates ###
 
 racc_reduce_table = [
  0, 0, :racc_error,
- 2, 7, :_reduce_none,
- 2, 8, :_reduce_none,
- 1, 8, :_reduce_none,
- 3, 10, :_reduce_4,
  2, 9, :_reduce_none,
- 2, 9, :_reduce_none,
- 1, 9, :_reduce_none,
- 1, 9, :_reduce_none,
- 3, 11, :_reduce_none,
+ 2, 10, :_reduce_none,
+ 1, 10, :_reduce_none,
+ 3, 12, :_reduce_4,
  2, 11, :_reduce_none,
- 2, 12, :_reduce_11,
- 1, 13, :_reduce_12,
- 1, 14, :_reduce_13 ]
+ 2, 11, :_reduce_none,
+ 1, 11, :_reduce_none,
+ 1, 11, :_reduce_none,
+ 3, 13, :_reduce_none,
+ 2, 13, :_reduce_none,
+ 3, 14, :_reduce_11,
+ 3, 14, :_reduce_12,
+ 3, 14, :_reduce_13,
+ 1, 15, :_reduce_14,
+ 1, 16, :_reduce_15 ]
 
-racc_reduce_n = 14
+racc_reduce_n = 16
 
-racc_shift_n = 22
+racc_shift_n = 26
 
 racc_action_table = [
-    17,    14,    10,    19,     1,     1,    10,    13,     6,    10,
-    10,     5,    19 ]
+    18,    12,    19,     2,    12,    21,    24,    12,    21,    13,
+    14,     2,    12,     6,    21,     5,    21 ]
 
 racc_action_check = [
-     9,     6,     9,     9,     3,     0,     3,     5,     2,     7,
-     8,     1,    20 ]
+    11,     9,    11,     4,    11,    11,    18,     4,    18,     5,
+     6,     0,    10,     3,    17,     2,    19 ]
 
 racc_action_pointer = [
-     3,     8,     8,     2,   nil,     5,     1,     5,     6,    -2,
-   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,   nil,
-     7,   nil ]
+     9,   nil,    12,    13,     1,     7,    10,   nil,   nil,    -5,
+     6,    -2,   nil,   nil,   nil,   nil,   nil,     7,     1,     9,
+   nil,   nil,   nil,   nil,   nil,   nil ]
 
 racc_action_default = [
-   -14,   -14,   -14,   -14,    -3,   -14,   -14,    -7,    -8,   -14,
-   -12,    -1,    -2,    -4,    22,    -5,    -6,   -11,   -10,   -13,
-   -14,    -9 ]
+   -16,    -3,   -16,   -16,   -16,   -16,   -16,    -1,    -2,    -7,
+    -8,   -16,   -14,    -4,    26,    -5,    -6,   -16,   -16,   -16,
+   -10,   -15,    -9,   -13,   -12,   -11 ]
 
 racc_goto_table = [
-    18,    11,     3,     2,   nil,    15,    16,    20,   nil,     4,
-   nil,    21,    12 ]
+    20,     1,     4,     3,     7,     8,    22,    23,    25,    15,
+    16,    17 ]
 
 racc_goto_check = [
-     8,     3,     2,     1,   nil,     3,     3,     3,   nil,     4,
-   nil,     8,     4 ]
+     8,     4,     2,     1,     3,     4,     8,     8,     8,     3,
+     3,     3 ]
 
 racc_goto_pointer = [
-   nil,     3,     2,    -2,     9,   nil,   nil,   nil,    -9 ]
+   nil,     3,     2,     0,     1,   nil,   nil,   nil,   -11 ]
 
 racc_goto_default = [
-   nil,   nil,   nil,   nil,   nil,     7,     8,     9,   nil ]
+   nil,   nil,   nil,   nil,   nil,     9,    10,    11,   nil ]
 
 racc_token_table = {
  false => 0,
  Object.new => 1,
  :STRING => 2,
  :COLON => 3,
- :START_TAG => 4,
- :END_TAG => 5 }
+ :NOTHING => 4,
+ :CARRIAGE => 5,
+ :START_TAG => 6,
+ :END_TAG => 7 }
 
 racc_use_result_var = true
 
-racc_nt_base = 6
+racc_nt_base = 8
 
 Racc_arg = [
  racc_action_table,
@@ -166,6 +195,8 @@ Racc_token_to_s_table = [
 'error',
 'STRING',
 'COLON',
+'NOTHING',
+'CARRIAGE',
 'START_TAG',
 'END_TAG',
 '$start',
@@ -178,7 +209,7 @@ Racc_token_to_s_table = [
 'start_tag',
 'end_tag']
 
-Racc_debug_parser = false
+Racc_debug_parser = true
 
 ##### racc system variables end #####
 
@@ -211,20 +242,34 @@ module_eval <<'.,.,', 'ofx_102.y', 7
 
 module_eval <<'.,.,', 'ofx_102.y', 17
   def _reduce_11( val, _values, result )
-@event_handler.attribute_event(name_from_ofx(val[0]), val[1])
+attribute_event(val[0], nil)
+   result
+  end
+.,.,
+
+module_eval <<'.,.,', 'ofx_102.y', 18
+  def _reduce_12( val, _values, result )
+attribute_event(val[0], val[1])
    result
   end
 .,.,
 
 module_eval <<'.,.,', 'ofx_102.y', 19
-  def _reduce_12( val, _values, result )
-start_tag_event(val[0])
+  def _reduce_13( val, _values, result )
+attribute_event(val[0], val[1])
    result
   end
 .,.,
 
 module_eval <<'.,.,', 'ofx_102.y', 21
-  def _reduce_13( val, _values, result )
+  def _reduce_14( val, _values, result )
+start_tag_event(val[0])
+   result
+  end
+.,.,
+
+module_eval <<'.,.,', 'ofx_102.y', 23
+  def _reduce_15( val, _values, result )
 end_tag_event(val[0])
    result
   end
