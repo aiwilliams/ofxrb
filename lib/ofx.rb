@@ -38,6 +38,7 @@ module OFXRB
 
     def initialize
       @stack = []
+      @end_mark = {}
       @current = @ofx_object = Model::OfxInstance.new
     end
 
@@ -54,12 +55,12 @@ module OFXRB
       if new_state != @current
         @stack.push(@current)
         @current = new_state
-        new_state.ending_name = name
+        @end_mark[new_state] = name
       end
     end
     
     def end_tag_event(name)
-      while @current and @current.ofx_end(name)
+      while @current and (@current.ofx_end; @end_mark[@current] == name)
         @current = @stack.pop
       end
     end
@@ -154,11 +155,8 @@ module OFXRB
     end
 
     include TypeCasting
-
-    attr_writer :ending_name
     
     def initialize
-      @ending_name = nil
       @current_path = []
       @children = {}
       @attributes = {}
@@ -197,9 +195,8 @@ module OFXRB
       end
     end
 
-    def ofx_end(ofx_element)
+    def ofx_end
       @current_path.pop unless @current_path.empty?
-      @ending_name == ofx_element
     end
 
     private
