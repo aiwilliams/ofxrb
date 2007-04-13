@@ -19,6 +19,7 @@ class OfxTest < Test::Unit::TestCase
     assert_equal(ofx_time('20060609170000'), cc.start_date)
     assert_equal('1234123412341234', cc.number)
     assert_equal(4274, cc.transactions[0].amount)
+    assert_equal(74600, cc.transactions[1].amount)
   end
 
   def test_checking_and_savings_102

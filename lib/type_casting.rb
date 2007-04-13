@@ -30,7 +30,11 @@ module OFXRB
 
     def string_to_money(string)
       return string unless string.is_a?(String)
-      string.gsub(/[\.,]/, '').to_i rescue nil
+      if string =~ /\./
+        string.gsub(/[\.,]/, '')
+      else
+        string + "00"
+      end.to_i rescue nil
     end
 
     def string_to_date(string)
