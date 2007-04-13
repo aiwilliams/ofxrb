@@ -58,6 +58,9 @@ class Parser102Test < Test::Unit::TestCase
       'OPENATTRCLOSE_attribute',
       'NOCLOSEATTR_attribute',
       'bankmsgsrsv1_end',
+      'STMTTRN_start',
+      'TRNTYPE_attribute',
+      'STMTTRN_end',
       'OFX_end',
     ], my_handler.events)
     

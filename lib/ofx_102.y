@@ -1,25 +1,25 @@
 class OFXRB::Parser102
 rule
-	root: headers objects
+  root: headers objects
 
-	headers: headers key_value_pair
-	       | key_value_pair
+  headers: headers key_value_pair
+         | key_value_pair
 
-	key_value_pair: STRING COLON STRING {@event_handler.header_event(val[0], val[2])}
-	
-	objects: object objects
-	       | attribute objects
-	       | object
-	       | attribute
+  key_value_pair: STRING COLON STRING {@event_handler.header_event(val[0], val[2])}
+  
+  objects: object objects
+         | attribute objects
+         | object
+         | attribute
 
   object: start_tag objects end_tag
         | start_tag end_tag
 
-	attribute: start_tag NOTHING end_tag {attribute_event(val[0], nil)}
-	         | start_tag STRING CARRIAGE {attribute_event(val[0], val[1])}
-	         | start_tag STRING end_tag {attribute_event(val[0], val[1])}
+  attribute: start_tag NOTHING end_tag {attribute_event(val[0], nil)}
+            | start_tag STRING CARRIAGE {attribute_event(val[0], val[1])}
+            | start_tag STRING end_tag {attribute_event(val[0], val[1])}
 
-	start_tag: START_TAG {start_tag_event(val[0])}
+  start_tag: START_TAG {start_tag_event(val[0])}
 
   end_tag: END_TAG {end_tag_event(val[0])}
 end
@@ -97,6 +97,10 @@ def parse(ofx_doc, event_handler)
           while s.check(/[\f\t ]*[\r\n]/)
             s.scan(/[\f\t ]*[\r\n]/)
           end
+          # Handle case where object end tag follows attribute value
+          if :END_TAG == key && :STRING == @tokens[-1][0]
+            @tokens << [:CARRIAGE, "\r\n"] if @tokens[-2][1][1..-2] != matched[2..-2]
+          end
         end
         @tokens << [key, matched]
         # Handle case where an attribute has nothing, not even a single space
@@ -106,7 +110,7 @@ def parse(ofx_doc, event_handler)
     end
   end
 
-  #@yydebug = true
+  # @yydebug = true
   do_parse
   @event_handler.ofx_object
 end

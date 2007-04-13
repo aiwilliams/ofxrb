@@ -14,7 +14,7 @@ module OFXRB
 
   class Parser102 < Racc::Parser
 
-module_eval <<'..end ofx_102.y modeval..id8ba4ba7a31', 'ofx_102.y', 31
+module_eval <<'..end ofx_102.y modeval..idcc5dc09217', 'ofx_102.y', 31
 def name_from_ofx(tag)
   $1 if tag =~ /<\/?(\w+|\w+\.\w+)>/
 end
@@ -84,6 +84,10 @@ def parse(ofx_doc, event_handler)
           while s.check(/[\f\t ]*[\r\n]/)
             s.scan(/[\f\t ]*[\r\n]/)
           end
+          # Handle case where object end tag follows attribute value
+          if :END_TAG == key && :STRING == @tokens[-1][0]
+            @tokens << [:CARRIAGE, "\r\n"] if @tokens[-2][1][1..-2] != matched[2..-2]
+          end
         end
         @tokens << [key, matched]
         # Handle case where an attribute has nothing, not even a single space
@@ -93,7 +97,7 @@ def parse(ofx_doc, event_handler)
     end
   end
 
-  #@yydebug = true
+  # @yydebug = true
   do_parse
   @event_handler.ofx_object
 end
@@ -102,7 +106,7 @@ private
 def next_token
   @tokens.shift
 end
-..end ofx_102.y modeval..id8ba4ba7a31
+..end ofx_102.y modeval..idcc5dc09217
 
 ##### racc 1.4.5 generates ###
 
@@ -209,7 +213,7 @@ Racc_token_to_s_table = [
 'start_tag',
 'end_tag']
 
-Racc_debug_parser = true
+Racc_debug_parser = false
 
 ##### racc system variables end #####
 
